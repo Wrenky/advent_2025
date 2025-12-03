@@ -1,0 +1,6 @@
+tmp/
+*/Day*
+.direnv/
+
+**/input
+**/demo*
