@@ -17,26 +17,10 @@ func parseInput(input string) grid.Grid[string] {
 	})
 }
 
-var (
-	UP    = grid.Coord{X: -1, Y: 0}
-	DOWN  = grid.Coord{X: 1, Y: 0}
-	LEFT  = grid.Coord{X: 0, Y: -1}
-	RIGHT = grid.Coord{X: 0, Y: 1}
-)
-
 func AllDirections(p grid.Coord) []grid.Coord {
-	up := grid.Add(p, UP)
-	down := grid.Add(p, DOWN)
-	return []grid.Coord{
-		up,
-		grid.Add(up, LEFT),
-		grid.Add(up, RIGHT),
-		grid.Add(p, LEFT),
-		grid.Add(p, RIGHT),
-		down,
-		grid.Add(down, LEFT),
-		grid.Add(down, RIGHT),
-	}
+	return lo.Map(grid.ALLDIRECTIONS, func(c grid.Coord, _ int) grid.Coord {
+		return grid.Add(p, c)
+	})
 }
 
 // Can we forklift this point?
@@ -54,18 +38,14 @@ func Forkliftable(g grid.Grid[string], p grid.Coord) bool {
 	})) < 4
 }
 
+// ================================================================
+// Part 2 only, remove all forkliftable points
 // Forklift the points and return an updated grid + removed count
 func ForkRemove(g grid.Grid[string]) (grid.Grid[string], int) {
 
-	removable := lo.Flatten(lo.Map(g, func(row []string, i int) []grid.Coord {
-		return lo.FilterMap(row, func(x string, j int) (grid.Coord, bool) {
-			p := grid.Coord{
-				X: i,
-				Y: j,
-			}
-			return p, Forkliftable(g, p)
-		})
-	}))
+	removable := lo.Filter(grid.AllPoints(g), func(p grid.Coord, _ int) bool {
+		return Forkliftable(g, p)
+	})
 
 	// New grid!
 	gnext := grid.Clone(g)
@@ -75,7 +55,7 @@ func ForkRemove(g grid.Grid[string]) (grid.Grid[string], int) {
 	return gnext, len(removable)
 }
 
-// Forkremove until we cant!
+// Part2: Forkremove until we cant!
 func Removal(g grid.Grid[string], removed int) int {
 	gnext, r := ForkRemove(g)
 	if r == 0 {
@@ -83,6 +63,18 @@ func Removal(g grid.Grid[string], removed int) int {
 	}
 	return Removal(gnext, removed+r)
 }
+
+//================================================================
+
+// ================================================================
+// Part 1 code, count forkliftable on a single grid
+func CountForkliftable(g grid.Grid[string]) int {
+	return len(lo.Filter(grid.AllPoints(g), func(p grid.Coord, _ int) bool {
+		return Forkliftable(g, p)
+	}))
+}
+
+//================================================================
 
 func main() {
 	// Handle command line
@@ -94,11 +86,7 @@ func main() {
 	}
 
 	pre1 := time.Now()
-	count := lo.Sum(lo.Map(g, func(row []string, i int) int {
-		return len(lo.Filter(row, func(x string, j int) bool {
-			return Forkliftable(g, grid.Coord{X: i, Y: j})
-		}))
-	}))
+	count := CountForkliftable(g)
 	post1 := time.Now()
 	log.Info("Part1", "answer", count, "time", post1.Sub(pre1))
 
